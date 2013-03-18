@@ -116,7 +116,7 @@ It's a very gentle APNS-client.
 
 create a new instance of C<MR::APNS::Transport> and C<MR::APNS>.
 
-Required arguments are:
+=head3 Required arguments are
 
 =over
 
@@ -128,7 +128,7 @@ Either of them is required. Sets certificate. When C<cert> was specified then C<
 
 =back
 
-Optional arguments are:
+=head3 Optional arguments are
 
 =over
 
