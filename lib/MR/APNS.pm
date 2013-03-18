@@ -67,7 +67,7 @@ __END__
 
 =head1 NAME
 
-MR::APNS - Apple Push Notifications Service (APNS) client with enhanced format for notification packets.
+MR::APNS - easy way to send push notification with enhanced format for packets
 
 =head1 SYNOPSIS
 
@@ -108,7 +108,7 @@ MR::APNS - Apple Push Notifications Service (APNS) client with enhanced format f
 
 =head1 DESCRIPTION
 
-It's a very gentle APNS-client.
+It's a very gentle APNS (Apple Push Notifications Service) client with enhanced format for notification packets.
 
 =head1 METHODS
 
@@ -174,12 +174,10 @@ Last transport error as string.
 
 =head2 transport
 
-Read only access to C<MR::APNS::Transport> instance. C<MR::APNS::Transport> doesn't have POD.
+Read only access to C<MR::APNS::Transport> instance. C<MR::APNS::Transport> doesn't have a POD.
  
 Avaliable state are (see above) C<cert_file>, C<cert>, C<key_file>, C<key>, C<password>, C<sandbox>, C<hostname>, C<port>, 
-C<write_timeout>, C<last_read_timeout>
-
-And few methods C<connect>, C<disconnect>, C<send>.
+C<write_timeout>, C<last_read_timeout> and a few methods are C<connect>, C<disconnect>, C<send>.
 
 In common case you don't need access to C<transport> 
 
