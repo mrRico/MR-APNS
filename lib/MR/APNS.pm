@@ -97,7 +97,7 @@ MR::APNS - Apple Push Notifications Service (APNS) client with enhanced format f
             } elsif ($action == ACTION_RESEND) {
                 # timeout or unsended because transport error
                 print "message need to resend (error: ".$_->error_str.")\n";
-            } elsif ($action == ACTION_RESEND) {
+            } elsif ($action == ACTION_DELETE) {
                 # don't try to resend
                 print "message malformed (error: ".$_->error_str.")\n";
             }
@@ -108,6 +108,96 @@ MR::APNS - Apple Push Notifications Service (APNS) client with enhanced format f
 
 =head1 DESCRIPTION
 
-meow..
+It's a very gentle APNS-client.
+
+=head1 METHODS
+
+=head2 new(%args)
+
+create a new instance of C<MR::APNS::Transport> and C<MR::APNS>.
+
+Required arguments are:
+
+=over
+
+=item cert_file : file path (ro)
+
+=item cert : Str (ro)
+
+Either of them is required. Sets certificate. When C<cert> was specified then C<cert_file> will be ignored.
+
+=back
+
+Optional arguments are:
+
+=over
+
+=item key_file : file path(ro)
+
+=item key : Str(ro)
+
+=item password : Str|CodeRef(ro)
+
+Private key settings. B<Default> : is the same as C<cert_file>
+
+=item sandbox : Bool(ro)
+
+Gateway target. B<Default> : 0
+
+=item hostname : Str(ro)
+
+Gateway target. B<Default>: depends on C<sandbox>
+
+=item port : Int(ro)
+
+Gateway target. B<Default> : 2195
+
+=item write_timeout : Num(rw)
+
+It's timeout for L<IO::Select> to I<can_write>. It'll be invoked before sending every payload. B<Default>: 0.1
+
+=item last_read_timeout : Num(rw)
+
+It's timeout for L<IO::Select> to I<can_read>. It'll be invoked after sending last payload to receive error-response packets.
+
+Between sending payloads I<can_read> invoke with zero timeout.  B<Default>: 0.1
+
+=back
+
+=head2 send(@messages)
+
+Send notification for APNS. It take a list of L<MR::APNS::Payload> instances. Returns the number of success sended items.
+
+=head2 error
+
+Last transport error as string.
+
+=head2 transport
+
+Read only access to C<MR::APNS::Transport> instance. C<MR::APNS::Transport> doesn't have POD.
+ 
+Avaliable state are (see above) C<cert_file>, C<cert>, C<key_file>, C<key>, C<password>, C<sandbox>, C<hostname>, C<port>, 
+C<write_timeout>, C<last_read_timeout>
+
+And few methods C<connect>, C<disconnect>, C<send>.
+
+In common case you don't need access to C<transport> 
+
+=head1 NOTE
+
+I<cert_file> and I<key_file> are the same file if you've generated them as in example L<http://stackoverflow.com/questions/11536587/creating-pem-file-for-push-notification>.
+
+=head1 SEE ALSO
+
+L<MR::APNS::Payload>
+
+=head1 ALL DEPENDENCIES
+
+L<Mouse>, L<Mouse::Role>, L<Mouse::Util::TypeConstraints>, L<File::Temp>, L<IO::Select>, L<Net::SSLeay>, 
+L<JSON::XS>, L<Encode>, L<List::Util>
+
+=head1 LICENSE
+
+This library is under meow license.
 
 =cut

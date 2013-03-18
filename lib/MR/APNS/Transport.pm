@@ -76,14 +76,14 @@ has 'hostname' => (
 );
 
 has 'port' => (
-    is              => 'rw',
+    is              => 'ro',
     isa             => 'Int',
     lazy            => 1,
     default         => sub { 2195 },    
 );
 
 has ['write_timeout', 'last_read_timeout'] => (
-    is              => 'ro',
+    is              => 'rw',
     isa             => 'Num',
     lazy            => 1,
     default         => sub { 0.1 }
