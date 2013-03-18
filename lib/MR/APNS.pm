@@ -127,11 +127,14 @@ MR::APNS - easy way to send push notification with enhanced format for packets
     );
     
     while (1) {
-        my $feedback = $fapns->retrieve_feedback;
+        my $feedback = $apns->retrieve_feedback;
         if ($feedback) {
-            .. to forget about device tokens ..
-        };
-        die $fapns->error if $fapns->error;
+            for (@$feedback) {
+                .. to forget about device tokens ..
+                ..there're keys: time_t, bintoken, token ...
+            };
+        }
+        die $apns->error if $apns->error;
         last unless $feedback;
     }
 
