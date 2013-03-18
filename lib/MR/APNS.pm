@@ -48,6 +48,14 @@ sub send {
     return $send_cnt;
 }
 
+sub feedback {
+    my $self = shift;
+    $self->clean_error();
+    my ($feedback, $error) = $self->transport->get_feedback;
+    $self->error($error) if $error;
+    return $feedback;
+}
+
 sub BUILDARGS {
     my $class = shift;
     my $param = @_==1 ? $_[0] : {@_};
@@ -64,12 +72,15 @@ __PACKAGE__->meta->make_immutable;
 no Mouse;
 1;
 __END__
+=encoding utf-8
 
 =head1 NAME
 
 MR::APNS - easy way to send push notification with enhanced format for packets
 
 =head1 SYNOPSIS
+
+=head3 sending push notifications
 
     use MR::APNS qw(:action);
     
@@ -104,6 +115,24 @@ MR::APNS - easy way to send push notification with enhanced format for packets
         }
         # transport error
         die $apns->error if $apns->error;
+    }
+
+=head3 retrieve feedback
+
+    use MR::APNS;
+    
+    my $apns = MR::APNS->new(
+        sandbox => 1,
+        cert_file => '/path/to/cert.pem'
+    );
+    
+    while (1) {
+        my $feedback = $fapns->retrieve_feedback;
+        if ($feedback) {
+            .. to forget about device tokens ..
+        };
+        die $fapns->error if $fapns->error;
+        last unless $feedback;
     }
 
 =head1 DESCRIPTION
@@ -168,6 +197,21 @@ Between sending payloads I<can_read> invoke with zero timeout.  B<Default>: 0.1
 
 Send notification for APNS. It take a list of L<MR::APNS::Payload> instances. Returns the number of success sended items.
 
+=head2 retrieve_feedback()
+
+Retrieve data from APNS feedback service. Returns an arrayref (possibly) containing hashrefs. eg:
+
+    [
+        {
+            'time_t' => 1259577923,
+            'token' => '04ef31c86205...624f390ea878416',
+            'bintoken' => '..binary representation of token..'
+        },
+        ...
+    ]
+
+It's possibly to have feedback and C<error> at the same time when error happens on disconnect.
+
 =head2 error
 
 Last transport error as string.
@@ -177,9 +221,62 @@ Last transport error as string.
 Read only access to C<MR::APNS::Transport> instance. C<MR::APNS::Transport> doesn't have a POD.
  
 Avaliable state are (see above) C<cert_file>, C<cert>, C<key_file>, C<key>, C<password>, C<sandbox>, C<hostname>, C<port>, 
-C<write_timeout>, C<last_read_timeout> and a few methods are C<connect>, C<disconnect>, C<send>.
+C<write_timeout>, C<last_read_timeout>, C<feedback> and a few methods are C<connect>, C<disconnect>, C<send>, C<get_feedback>.
 
-In common case you don't need access to C<transport> 
+In common case you don't need direct access to C<transport> 
+
+=head1 EXPORT TAGS
+
+=head2 :action
+
+After sending it is possible to filter messages to receive next action need to do.
+
+=over
+
+=item ACTION_NONE
+
+Message was pushed.
+
+=item ACTION_RESEND
+
+Transport returned timeout error or connection was interrupted.
+
+=item ACTION_DELETE
+
+Message is malformed
+
+=back
+
+=head1 MORE EXAMPLES
+
+=head3 specify 'context' is very useful
+
+    # 'context' has type 'Any'
+    my $m = MR::APNS::Payload->new(token => $token, ..., context => $mysql_id);
+    
+    # in common case you shouldn't to send single notification otherwise APNS will be unhappy
+    unless ( $apns->send($m) ) {
+        my $action = $m->need_action;
+        if ($action == ACTION_RESEND) {
+            print "message with ".$m->context." need to resend (error: ".$m->error_str.")\n";
+            ...
+        } elsif ($action == ACTION_DELETE) {
+            print "message with ".$m->context." is malformed (error: ".$m->error_str.")\n";
+        }
+    };
+
+=head3 up 'utf8' flag  
+    
+It's case when you send utf8 alert whitout utf8 flag.
+
+    use Encode;
+    my $alert = "Привет, APNS";
+    print Encode::is_utf8($alert) ? 'on' : 'off'; # off
+    # or
+    $alert = { body => $alert, loc-args => [...], ... };
+    
+    # device should receive correct message
+    my $m = MR::APNS::Payload->new(token => $token, ..., _utf8_on => 1);
 
 =head1 NOTE
 

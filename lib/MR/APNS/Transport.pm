@@ -7,6 +7,7 @@ use Socket      qw();
 use Net::SSLeay qw();
 use Carp        qw();
 use IO::Handle  qw();
+use List::Util  qw();
 
 has 'cert_file' => (
     is              => 'ro',
@@ -65,24 +66,35 @@ has 'sandbox'  => (
     documentation   => 'gateway target'
 );
 
+has 'feedback'  => (
+    is              => 'rw',
+    isa             => 'Bool',
+    lazy            => 1,
+    default         => sub { 0 },
+    documentation   => 'feedback target'
+);
+
 has 'hostname' => (
     is              => 'ro',
     isa             => 'Str',
     lazy            => 1,
     default         => sub {
         my $self = shift;
-        return sprintf('gateway.%spush.apple.com', $self->sandbox ? 'sandbox.' : '')
-    },    
+        return sprintf('%s.%spush.apple.com', $self->feedback ? 'feedback' : 'gateway' ,$self->sandbox ? 'sandbox.' : '')
+    },
 );
 
 has 'port' => (
     is              => 'ro',
     isa             => 'Int',
     lazy            => 1,
-    default         => sub { 2195 },    
+    default         => sub {
+        my $self = shift;
+        $self->feedback ? 2196 : 2195 
+    },    
 );
 
-has ['write_timeout', 'last_read_timeout'] => (
+has ['write_timeout', 'last_read_timeout', 'feedback_timeout'] => (
     is              => 'rw',
     isa             => 'Num',
     lazy            => 1,
@@ -266,20 +278,49 @@ sub _send {
         return {error => 'fatal', error_str => $@, send => 1};
     }
     unless ($data) {
-        # apns closed connection (ignore error for payload)
+        # apns closed connection (ignore error for payloads)
         $self->disconnect;
         return {error => 'OK', send => 1};
     };
-    my @apns_err = unpack '(CCL)*', $data;
-    while ( my @e = splice(@apns_err, 0 , 3) ) {
-        $ret->{ $e[2] } = $e[1];
-    }
+    while ($data) {
+        my ($command, $status, $identifier);
+        ($command, $status, $identifier, $data) = unpack 'CCL a*', $data;
+        $ret->{ $identifier } = $status;
+    }    
     return {error => 'OK', send => 1, apns_error => $ret};
 }
 
 sub _die_if_ssl_error {
     my $err = Net::SSLeay::print_errs("SSL error: $_[0]");
     Carp::croak $err if $err;
+}
+
+sub retrieve_feedback {
+    my $self = shift;
+    my $res = {};
+    $self->feedback(1);
+    eval {
+        $self->connect;
+        my ($ready_socket) = $self->_ioselect->can_read($self->feedback_timeout);
+        return unless $ready_socket;
+        my $data = Net::SSLeay::ssl_read_all($self->_ssl) or _die_if_ssl_error("ssl_read_all error: $!");
+        while ($data) {
+            my ($time_t, $bintoken);
+            ($time_t, $bintoken, $data) = unpack 'N n/a a*', $data;
+            my $token = unpack 'H*', $bintoken;
+            if (exists $res->{$token}) {
+                $res->{$token}->{time_t} = List::Util::max($time_t, $res->{$token}->{time_t});
+            } else {
+                $res->{$token} = {
+                    time_t      => $time_t,
+                    bintoken    => $bintoken,
+                    token       => $token                    
+                };
+            }
+        }
+        $self->disconnect;
+    };
+    return (keys %$res ? [values %$res] : undef, $@);
 }
 
 sub BUILD {
