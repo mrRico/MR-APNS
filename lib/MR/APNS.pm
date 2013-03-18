@@ -48,10 +48,10 @@ sub send {
     return $send_cnt;
 }
 
-sub feedback {
+sub retrieve_feedback {
     my $self = shift;
     $self->clean_error();
-    my ($feedback, $error) = $self->transport->get_feedback;
+    my ($feedback, $error) = $self->transport->retrieve_feedback;
     $self->error($error) if $error;
     return $feedback;
 }
@@ -220,7 +220,7 @@ Last transport error as string.
 
 Read only access to C<MR::APNS::Transport> instance. C<MR::APNS::Transport> doesn't have a POD.
  
-Avaliable state are (see above) C<cert_file>, C<cert>, C<key_file>, C<key>, C<password>, C<sandbox>, C<hostname>, C<port>, 
+Avaliable attributes are (see above) C<cert_file>, C<cert>, C<key_file>, C<key>, C<password>, C<sandbox>, C<hostname>, C<port>, 
 C<write_timeout>, C<last_read_timeout>, C<feedback> and a few methods are C<connect>, C<disconnect>, C<send>, C<get_feedback>.
 
 In common case you don't need direct access to C<transport> 
@@ -252,26 +252,24 @@ Message is malformed
 =head3 specify 'context' is very useful
 
     # 'context' has type 'Any'
-    my $m = MR::APNS::Payload->new(token => $token, ..., context => $mysql_id);
+    my $m = MR::APNS::Payload->new(token => $token, ..., context => $storage_id);
     
     # in common case you shouldn't to send single notification otherwise APNS will be unhappy
     unless ( $apns->send($m) ) {
         my $action = $m->need_action;
         if ($action == ACTION_RESEND) {
-            print "message with ".$m->context." need to resend (error: ".$m->error_str.")\n";
+            print "message with storage id ".$m->context." need to resend (error: ".$m->error_str.")\n";
             ...
         } elsif ($action == ACTION_DELETE) {
-            print "message with ".$m->context." is malformed (error: ".$m->error_str.")\n";
+            print "message with storage id ".$m->context." is malformed (error: ".$m->error_str.")\n";
         }
     };
 
-=head3 up 'utf8' flag  
+=head3 'utf8' flag  
     
-It's case when you send utf8 alert whitout utf8 flag.
+It's case when you send alert whitout utf8 flag.
 
-    use Encode;
     my $alert = "Привет, APNS";
-    print Encode::is_utf8($alert) ? 'on' : 'off'; # off
     # or
     $alert = { body => $alert, loc-args => [...], ... };
     

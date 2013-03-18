@@ -69,7 +69,7 @@ has 'expiry'  => (
     isa             => 'Int',
     lazy            => 1,
     default         => sub { 0 },
-    documentation   => 'ate expressed in seconds (UTC) that identifies when the notification is no longer valid and can be discarded'
+    documentation   => 'Date expressed in seconds (UTC) that identifies when the notification is no longer valid and can be discarded'
 );
 
 has 'error'  => (
@@ -175,3 +175,91 @@ __PACKAGE__->meta->make_immutable;
 no Mouse;
 1;
 __END__
+=head1 NAME
+
+MR::APNS::Payload - push notification instance
+
+=head1 DESCRIPTION
+
+It's L<Mouse> class
+
+=head1 ATTRIBUTES
+
+=head3 Required
+
+=over
+
+=item token : Str (ro)
+
+=item bintoken : Str (ro)
+
+It's device token. Use either of them.
+
+=back
+
+=head3 Optional
+
+=over
+
+=item alert : Str:HashRef (rw)
+
+Message
+
+=item badge : Int (rw)
+
+The number to display as the badge of the application icon.
+To remove the badge, set the value of this property to 0.
+
+=item sound : Str (rw)
+
+The name of a sound file in the application bundle. 
+The sound in this file is played as an alert. 
+If the sound file doesn't exist or I<default> is specified as the value, the default alert sound is played.
+
+=item custom : HashRef (rw)
+
+Custom dictionary which need include to payload.
+
+=item _can_skip_custom : Bool (rw)
+
+When payload has size more than 256 byte, it's able to skip custom dictionary. B<Default>: 0
+
+=item expiry : Int (rw)
+
+Date expressed in seconds (UTC) that identifies when the notification is no longer valid and can be discarded. B<Default>: 0
+
+=item error : Int (rw)
+
+=item error_str : Str (rw)
+
+See source code L<MR::APNS::Role::PayloadError>. In common case use L<error_str>.
+
+=item context : Any (rw)
+
+Anything that can help to relate this instance with another code
+
+=item  _identifier : Int (ro)
+
+The first rule of C<_identifier> is: You do not talk about C<_identifier>.
+
+=item _utf8_on : Bool (ro)
+
+Invoke C<Encode::_utf8_on> on simple alert or "body" and "loc-args" keys.
+
+=back
+
+=head1 METHODS
+
+=head2 as_binary()
+
+Make payload
+
+=head1 SEE ALSO and DEPENDENCIES
+
+L<MR::APNS>
+
+=head1 LICENSE
+
+This library is under meow license.
+
+=cut
