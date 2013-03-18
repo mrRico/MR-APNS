@@ -82,6 +82,13 @@ has 'port' => (
     default         => sub { 2195 },    
 );
 
+has ['write_timeout', 'last_read_timeout'] => (
+    is              => 'ro',
+    isa             => 'Num',
+    lazy            => 1,
+    default         => sub { 0.1 }
+);
+
 has '_ioselect'  => (
     is              => 'rw',
     isa             => 'Maybe[IO::Select]',
@@ -195,16 +202,20 @@ sub send {
     my @apns_error = (); my $i = 0;
     for my $m (@messages) {
         my $status = $self->_send($m->as_binary, $i == @messages ? 1 : 0);
-        if ($status->{send}) {
-            $send_cnt++;
-            $m->error(-2);
-        }
-        if ($status->{error} eq 'fatal') {
+        if ($status->{error} eq 'timeout') {
+            $m->error(-200);
+        } elsif ($status->{error} eq 'fatal') {
             $error = $status->{error_str};
             last;
         } elsif ($status->{error} eq 'OK' and $status->{apns_error}) {
             push @apns_error, $status->{apns_error};
         }
+        
+        if ($status->{send}) {
+            $send_cnt++;
+            $m->error(-2);
+        }
+        
         $i++;
     }
     
@@ -213,7 +224,8 @@ sub send {
     
     my %apns_error = map { %$_ } @apns_error;
     for (@messages) {
-         if ( exists $apns_error{ $_->_identifier } ) {
+         if ( $apns_error{ $_->_identifier } ) {
+             # ignore APNS_NO_ERRORS
              eval { $_->error($apns_error{ $_->_identifier }) };
              if ($@) {
                  $_->error(-255);
@@ -233,7 +245,7 @@ sub _send {
     if ($@) {
         return {error => 'fatal', error_str => $@, send => 0};
     }
-    my ($ready_socket) = $self->_ioselect->can_write(0.1);
+    my ($ready_socket) = $self->_ioselect->can_write( $self->write_timeout );
     unless ($ready_socket) {
         return {error => 'timeout', error_str => "socket timeout on write (0.1)", send => 0};
     }
@@ -243,10 +255,7 @@ sub _send {
     if ($@) {
         return {error => 'fatal', error_str => $@, status => 0};
     }
-    ($ready_socket) = $self->_ioselect->can_read($last ? 0.1 : 0);
-    if ($@) {
-        return {error => 'timeout', error_str => "socket timeout on read (0.1)", send => 1};
-    }
+    ($ready_socket) = $self->_ioselect->can_read($last ? $self->last_read_timeout : 0);
     unless ($ready_socket) {
         return {error => 'OK', send => 1};
     }

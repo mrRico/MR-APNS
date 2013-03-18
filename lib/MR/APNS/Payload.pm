@@ -4,7 +4,10 @@ use JSON::XS qw();
 use Encode qw();
 use bytes;
 
-with qw(MR::APNS::Role::PayloadError);
+with qw(
+    MR::APNS::Role::PayloadError
+    MR::APNS::Role::PayloadAction
+);
 
 # you can set either token or bintoken
 has 'token'  => (
