@@ -1,6 +1,11 @@
-Changes
-Makefile.PL
-MANIFEST
-README
-t/MR-APNS.t
 lib/MR/APNS.pm
+lib/MR/APNS/Role/PayloadError.pm
+lib/MR/APNS/Role/PayloadAction.pm
+lib/MR/APNS/Payload.pm
+lib/MR/APNS/Transport.pm
+Makefile.PL
+t/MR-APNS.t
+t/MR-APNS-PAYLOAD.t
+Changes
+MANIFEST
+README.pod
